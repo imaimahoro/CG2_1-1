@@ -12,6 +12,11 @@ using namespace DirectX;
 #include <d3dcompiler.h>
 #pragma comment(lib, "d3dcompiler.lib")
 
+#define DIRECTINPUT_VERSION  0x0800//DirectInputのバージョン指定
+#include<dinput.h>
+#pragma comment(lib,"dinput8.lib")
+#pragma comment(lib,"dxguid.lib")
+
 
 //ウィンドウプロシージャ
 LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -245,8 +250,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	result = device->CreateFence(fenceVal, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 
 
+	//DirectInputの初期化
+	IDirectInput8*directInput=nullptr;
+	result=DirectInput8Create(w.hInstance,DIRECTINPUT_VERSION,IID_IDirectInput8,(void**)&directInput,nullptr);
+	assert(SUCCEEDED(result));
 
+	//キーボードデバイスの生成
+	IDirectInputDevice8*keyboard=nullptr;
+	result=directInput->CreateDevice
+	(GUID_SysKeyboard,&keyboard,NULL);
+	assert(SUCCEEDED(result));
 
+	//入力データ形式のセット
+	result = keyboard->SetDataFormat(&c_dfDIKeyboard);
+	assert(SUCCEEDED(result));
+
+	//排他制御レベルのセット
+	result=keyboard->SetCooperativeLevel(hwnd,DISCL_FOREGROUND|DISCL_NONEXCLUSIVE|DISCL_NOWINKEY);
+	assert(SUCCEEDED(result));
 
 
 
@@ -392,12 +413,48 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	// ラスタライザの設定
 	pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // カリングしない
-	pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴン内塗りつぶし
-	pipelineDesc.RasterizerState.DepthClipEnable = true; // 深度クリッピングを有効に
+    pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴン内塗りつぶし
+	//pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;//ワイヤーフレーム
+    pipelineDesc.RasterizerState.DepthClipEnable = true; // 深度クリッピングを有効に
 
 	// ブレンドステート
-	pipelineDesc.BlendState.RenderTarget[0].RenderTargetWriteMask
-		= D3D12_COLOR_WRITE_ENABLE_ALL; // RBGA全てのチャンネルを描画
+	//pipelineDesc.BlendState.RenderTarget[0].RenderTargetWriteMask=D3D12_COLOR_WRITE_ENABLE_ALL;
+	
+	//レンダーターゲットのブレンド設定
+	D3D12_RENDER_TARGET_BLEND_DESC&blenddesc=pipelineDesc.BlendState.RenderTarget[0];
+	blenddesc.RenderTargetWriteMask=D3D12_COLOR_WRITE_ENABLE_ALL;//RBGA全てのチャンネルを描画
+
+	//共通設定
+	blenddesc.BlendEnable = true; //ブレンドを有効にする
+	blenddesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;//加算
+	blenddesc.SrcBlendAlpha = D3D12_BLEND_ONE;//ソースの値を100％使う
+	blenddesc.DestBlendAlpha = D3D12_BLEND_ZERO;//デストの値を0％使う
+
+	////加算合成
+	//blenddesc.BlendOp = D3D12_BLEND_OP_ADD;//加算
+	//blenddesc.SrcBlend = D3D12_BLEND_ONE;//ソースの値を100％使う
+	//blenddesc.DestBlend= D3D12_BLEND_ZERO;//デストの値を0％使う
+
+	////減算合成
+	//blenddesc.BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;//減算
+	//blenddesc.SrcBlend = D3D12_BLEND_ONE;//ソースの値を100％使う
+	//blenddesc.DestBlend = D3D12_BLEND_ZERO;//デストの値を0％使う
+
+	////色反転
+	//blenddesc.BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;//加算
+	//blenddesc.SrcBlend = D3D12_BLEND_INV_DEST_COLOR;//1.0f-デストカラーの値
+	//blenddesc.DestBlend = D3D12_BLEND_ZERO;//使わない
+
+	//半透明合成
+	blenddesc.BlendOp = D3D12_BLEND_OP_ADD;//加算
+	blenddesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;//ソースのアルファ値
+	blenddesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;//1.0f-ソースのアルファ値
+
+
+
+
+
+
 
 
 	// 頂点レイアウトの設定
@@ -470,6 +527,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		}
 
 		//DIRECTX毎フレーム処理ここから 
+
+		//キーボード処理の取得開始
+		keyboard->Acquire();
+
+	    //全てのキー入力状態を取得する
+		BYTE key[256] = {};
+		keyboard->GetDeviceState(sizeof(key), key);
+
+		//0が押されていたら
+		if (key[DIK_0])
+		{
+			OutputDebugStringA("Hit 0\n");
+		}
 
 
 
