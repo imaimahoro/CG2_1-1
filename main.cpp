@@ -281,14 +281,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		//頂点データ
 	XMFLOAT3 vertices[] =
 	{
-		{ -0.5f,-0.5f,0.0f},//左下
-		{ +0.5f,-0.5f,0.0f},//右下
-		{ -0.5f,+0.1f,0.0f},//左中
-		{ +0.5f,-0.1f,0.0f},//右中
-		{ -0.5f,+0.5f,0.0f},//左上
-		{ +0.5f,+0.5f,0.0f},//右上
+		{ -0.5f,-0.5f,0.0f},//左下 インデックス0
+		{ -0.5f,+0.5f,0.0f},//左上 インデックス1
+		{ +0.5f,-0.5f,0.0f},//右下 インデックス2
+		{ +0.5f,+0.5f,0.0f},//右上 インデックス3
 
 	};
+
+	//三角形のインデックスデータ
+	uint16_t indices[] =
+	{
+		0,1,2,//三角形1
+		1,2,3,//三角形2
+	};
+	
+	
+	
 	// 頂点データ全体のサイズ = 頂点データ一つ分のサイズ * 頂点データの要素数
 	UINT sizeVB = static_cast<UINT>(sizeof(XMFLOAT3) * _countof(vertices));
 
@@ -563,14 +571,45 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	result = device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState));
 	assert(SUCCEEDED(result));
 
+	
+	//インデックスバッファの設定
+	UINT sizeIB=static_cast<UINT>(sizeof(uint16_t)*_countof(indices ));
+	
+	resDesc.Dimension=D3D12_RESOURCE_DIMENSION_BUFFER;
+	resDesc.Width=sizeIB;
+	
+	resDesc.Height=1;
+	resDesc.DepthOrArraySize=1;
+	resDesc.MipLevels=1;
+	resDesc.SampleDesc.Count=1;
+	resDesc.Layout=D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
+	//インデックスバッファの生成
+    ID3D12Resource*indexBuff=nullptr;
+	result=device->CreateCommittedResource(
+		&heapProp,//ヒープ設定
+		D3D12_HEAP_FLAG_NONE,
+		&resDesc,//リソース設定
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&indexBuff));
 
+	//インデックスバッファをマッピング
+		uint16_t*indexMap=nullptr;
+	    result=indexBuff->Map(0,nullptr,(void**)&indexMap);
+	//全インデックスに対して
+		for(int i=0;i<_countof(indices);i++)
+		{
+			indexMap[i]=indices[i];//インデックスをコピー
+		}
+	//マッピング解除
+		indexBuff->Unmap(0,nullptr);
 
-
-
-
-
-
+	//インデックスバッファビューの生成
+		D3D12_INDEX_BUFFER_VIEW ibView{};
+		ibView.BufferLocation=indexBuff->GetGPUVirtualAddress();
+		ibView.Format=DXGI_FORMAT_R16_UINT;
+		ibView.SizeInBytes=sizeIB;
 
 
 
@@ -677,9 +716,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		//定数バッファビューの設定コマンド
 		commandList->SetGraphicsRootConstantBufferView(0, constBufferMaterial->GetGPUVirtualAddress());
 
-		// 描画コマンド
-		commandList->DrawInstanced(6, 1, 0, 0); // 全ての頂点を使って描画
+		//インデックスバッファビューの設定コマンド
+		commandList->IASetIndexBuffer(&ibView);
 
+		// 描画コマンド
+
+		//commandList->DrawInstanced(6, 1, 0, 0); // 全ての頂点を使って描画
+		commandList->DrawIndexedInstanced(_countof(indices),1, 0, 0, 0); // インデックスバッファを使って描画
 
 
 
