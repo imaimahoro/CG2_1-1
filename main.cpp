@@ -290,10 +290,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	//頂点データ
 	Vertex vertices[] =
 	{
-		{{ -50.0f,-50.0f,+50.0f},   {0.0f,1.0f}},//左下 インデックス0
-		{{ -50.0f,+50.0f,+50.0f},   {0.0f,0.0f}},//左上 インデックス1
-		{{ +50.0f,-50.0f,+50.0f},   {1.0f,1.0f}},//右下 インデックス2
-		{{ +50.0f,+50.0f,+50.0f},   {1.0f,0.0f}},//右上 インデックス3
+		{{ -50.0f,-50.0f,+0.0f},   {0.0f,1.0f}},//左下 インデックス0
+		{{ -50.0f,+50.0f,+0.0f},   {0.0f,0.0f}},//左上 インデックス1
+		{{ +50.0f,-50.0f,+0.0f},   {1.0f,1.0f}},//右下 インデックス2
+		{{ +50.0f,+50.0f,+0.0f},   {1.0f,0.0f}},//右上 インデックス3
 	};
 
 	//三角形のインデックスデータ
@@ -544,12 +544,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			(float)1280 / 720,//アスペクト比(画面横幅/画面縦幅）
 			1.0f, 1000.0f
 		);
-
-	//
-	
+	//ビュー変換行列
+	XMMATRIX matView;
+	XMFLOAT3 eye(0, 0, -100);//視点座標
+	XMFLOAT3 target(0, 0, 0);//注視点座標
+	XMFLOAT3 up(0, 1, 0);//上方向ベクトル
+	matView =
+		XMMatrixLookAtLH(XMLoadFloat3(&eye),
+			XMLoadFloat3(&target),
+			XMLoadFloat3(&up));
 
 	//定数バッファに転送
-	constMapTransform->mat = matProjection;
+	constMapTransform->mat = matView * matProjection;
+
+	//カメラの回転角
+	float angle = 0.0f;
 
 
 	//ヒープ設定
@@ -903,6 +912,39 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{
 			OutputDebugStringA("Hit 0\n");
 		}
+
+
+
+		//カメラが周りを回る
+		if (key[DIK_D] || key[DIK_A])
+		{
+			if (key[DIK_D]) { angle += XMConvertToRadians(1.0f); }
+			else if (key[DIK_A]) {
+				angle -= XMConvertToRadians(1.0f);
+			}
+			//angleラジアンだけY軸周りに回転、半径は-100
+			eye.x = -100 * sinf(angle);
+			eye.z = -100 * cosf(angle);
+
+			//ビュー変換行列を作り直す
+
+			matView =
+				XMMatrixLookAtLH(XMLoadFloat3(&eye),
+					XMLoadFloat3(&target),
+					XMLoadFloat3(&up));
+
+		}
+
+		//定数バッファに転送
+		constMapTransform->mat = matView * matProjection;
+
+
+
+
+
+
+
+
 
 
 
