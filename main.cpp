@@ -278,6 +278,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	//描画初期化処理ここから
 
+	XMFLOAT3 rotation = { 0.0f,0.0f,0.0f };
+	XMFLOAT3 scale = { 1.0f,1.0f,1.0f };
+	XMFLOAT3 position = { 0.0f,0.0f,0.0f };
+
 	//頂点データ構造体
 	struct Vertex
 	{
@@ -518,11 +522,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	}
 
 	//単位行列を追加
-	//constMapTransform->mat = XMMatrixIdentity();
-	//constMapTransform->mat.r[0].m128_f32[0]=2.0f/1280;//横幅
-	//constMapTransform->mat.r[1].m128_f32[1] = -2.0f/720;//縦幅
-	//constMapTransform->mat.r[3].m128_f32[0] = -1.0f;//-1平行移動
-	//constMapTransform->mat.r[3].m128_f32[1] = +1.0f;//+1平行移動
+	constMapTransform->mat = XMMatrixIdentity();
+	constMapTransform->mat.r[0].m128_f32[0]=2.0f/1280;//横幅
+	constMapTransform->mat.r[1].m128_f32[1] = -2.0f/720;//縦幅
+	constMapTransform->mat.r[3].m128_f32[0] = -1.0f;//-1平行移動
+	constMapTransform->mat.r[3].m128_f32[1] = +1.0f;//+1平行移動
+
+
 
 	//並行投影行列の計算
 	constMapTransform->mat = XMMatrixOrthographicOffCenterLH
@@ -554,8 +560,30 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			XMLoadFloat3(&target),
 			XMLoadFloat3(&up));
 
-	//定数バッファに転送
-	constMapTransform->mat = matView * matProjection;
+
+	////ワールド変換行列
+	//XMMATRIX matWorld;
+	//matWorld = XMMatrixIdentity();
+
+	//XMMATRIX matScale;//スケーリング行列
+	//matScale = XMMatrixScaling(1.0f, 0.5f, 1.0f);
+	//matWorld*=matScale;//ワールド行列にスケーリング行列を反映
+
+	//XMMATRIX matRot;//回転行列
+	//matRot = XMMatrixIdentity();
+	//matRot *= XMMatrixRotationZ(XMConvertToRadians(45.0f));//Z軸周りに45°回転
+	//matRot *= XMMatrixRotationX(XMConvertToRadians(15.0f));//X軸周りに15°回転
+	//matRot *= XMMatrixRotationY(XMConvertToRadians(30.0f));//Y軸周りに30°回転
+ //   matWorld*= matRot;//ワールド行列に回転行列を反映
+
+	//XMMATRIX matTrans;//平行移動行列
+	//matTrans = XMMatrixTranslation(-50.0f, 0, 0);//-50,0,0平行移動
+	//matWorld *= matTrans;//ワールド行列に平行移動行列を代入
+
+
+
+	////定数バッファに転送
+	//constMapTransform->mat =matWorld* matView * matProjection;
 
 	//カメラの回転角
 	float angle = 0.0f;
@@ -935,8 +963,41 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		}
 
+		//いずれかのキーを押していたら
+		if (key[DIK_UP] || key[DIK_DOWN] || key[DIK_RIGHT] || key[DIK_LEFT])
+		{
+			//座標を移動する処理(Z)
+			if (key[DIK_UP]) { position.z += 1.0f; }
+			else if (key[DIK_DOWN]) { position.z -= 1.0f; }
+			if (key[DIK_RIGHT]) { position.x += 1.0f; }
+			else if (key[DIK_LEFT]) { position.x -= 1.0f; }
+
+		}
+
+		//ワールド変換行列
+		XMMATRIX matWorld;
+		
+		XMMATRIX matScale;//スケーリング行列
+		matScale = XMMatrixScaling(scale.x, scale.y, scale.z);
+		
+		XMMATRIX matRot;//回転行列
+		matRot = XMMatrixIdentity();
+		matRot *= XMMatrixRotationZ(rotation.z);//Z軸周りに45°回転
+		matRot *= XMMatrixRotationX(rotation.x);//X軸周りに15°回転
+		matRot *= XMMatrixRotationY(rotation.y);//Y軸周りに30°回転
+
+
+		XMMATRIX matTrans;//平行移動行列
+		matTrans = XMMatrixTranslation(position.x, position.y, position.z);
+
+
+
+		matWorld = XMMatrixIdentity();//単位行列を代入し変形をリセット
+		matWorld *= matTrans;//ワールド行列に平行移動行列を代入
+		matWorld *= matScale;//ワールド行列にスケーリング行列を反映
+		matWorld *= matRot;//ワールド行列に回転行列を反映
 		//定数バッファに転送
-		constMapTransform->mat = matView * matProjection;
+		constMapTransform->mat = matWorld * matView * matProjection;
 
 
 
