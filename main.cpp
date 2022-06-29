@@ -250,43 +250,43 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 
 	//リソース設定
-		D3D12_RESOURCE_DESC depthResourceDesc{};
-	    depthResourceDesc.Dimension=D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	    depthResourceDesc.Width=window_width;//レンダーターゲットに合わせる
-		depthResourceDesc.Height=window_height;//レンダーターゲットに合わせる
-		depthResourceDesc.DepthOrArraySize=1;
-		depthResourceDesc.Format=DXGI_FORMAT_D32_FLOAT;//深度値フォーマット
-		depthResourceDesc.SampleDesc.Count=1;
-	    depthResourceDesc.Flags=D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;//デプスステンシル
-	//深度値用ヒーププロパティ
-		D3D12_HEAP_PROPERTIES depthHeapProp{};
-		depthHeapProp.Type = D3D12_HEAP_TYPE_DEFAULT;
+	D3D12_RESOURCE_DESC depthResourceDesc{};
+	depthResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	depthResourceDesc.Width = window_width;//レンダーターゲットに合わせる
+	depthResourceDesc.Height = window_height;//レンダーターゲットに合わせる
+	depthResourceDesc.DepthOrArraySize = 1;
+	depthResourceDesc.Format = DXGI_FORMAT_D32_FLOAT;//深度値フォーマット
+	depthResourceDesc.SampleDesc.Count = 1;
+	depthResourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;//デプスステンシル
+//深度値用ヒーププロパティ
+	D3D12_HEAP_PROPERTIES depthHeapProp{};
+	depthHeapProp.Type = D3D12_HEAP_TYPE_DEFAULT;
 	//深度値のクリア設定
-		D3D12_CLEAR_VALUE depthClearValue{};
-		depthClearValue.DepthStencil.Depth = 1.0f;//深度1.0f(MAX)でクリア
-		depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;//深度値フォーマット
-    //リソース生成
-		ID3D12Resource*depthBuff=nullptr;
-		result=device->CreateCommittedResource(
-			&depthHeapProp,
-			D3D12_HEAP_FLAG_NONE,
-			&depthResourceDesc,
-			D3D12_RESOURCE_STATE_DEPTH_WRITE,//深度値書き込みに使用
-			&depthClearValue,IID_PPV_ARGS(&depthBuff));
+	D3D12_CLEAR_VALUE depthClearValue{};
+	depthClearValue.DepthStencil.Depth = 1.0f;//深度1.0f(MAX)でクリア
+	depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;//深度値フォーマット
+//リソース生成
+	ID3D12Resource* depthBuff = nullptr;
+	result = device->CreateCommittedResource(
+		&depthHeapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&depthResourceDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,//深度値書き込みに使用
+		&depthClearValue, IID_PPV_ARGS(&depthBuff));
 	//深度ビュー用デスクリプタヒープ作成
-		D3D12_DESCRIPTOR_HEAP_DESC	dsvHeapDesc{};
-		dsvHeapDesc.NumDescriptors=1;//深度ビューは1つ
-		dsvHeapDesc.Type=D3D12_DESCRIPTOR_HEAP_TYPE_DSV;//デプスステンシルビュー
-		ID3D12DescriptorHeap*dsvHeap=nullptr;
-		result=device->CreateDescriptorHeap(&dsvHeapDesc,IID_PPV_ARGS(&dsvHeap));
+	D3D12_DESCRIPTOR_HEAP_DESC	dsvHeapDesc{};
+	dsvHeapDesc.NumDescriptors = 1;//深度ビューは1つ
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;//デプスステンシルビュー
+	ID3D12DescriptorHeap* dsvHeap = nullptr;
+	result = device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&dsvHeap));
 	//深度ビュー作成
-		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc={};
-		dsvDesc.Format=DXGI_FORMAT_D32_FLOAT;//深度値フォーマット
-		dsvDesc.ViewDimension=D3D12_DSV_DIMENSION_TEXTURE2D;
-		device->CreateDepthStencilView(
-				depthBuff,
-				&dsvDesc,
-				dsvHeap->GetCPUDescriptorHandleForHeapStart());
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+	dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;//深度値フォーマット
+	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	device->CreateDepthStencilView(
+		depthBuff,
+		&dsvDesc,
+		dsvHeap->GetCPUDescriptorHandleForHeapStart());
 
 
 
@@ -338,6 +338,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	struct Vertex
 	{
 		XMFLOAT3 pos;//XYZ座標
+		XMFLOAT3 normal;//法線ベクトル
 		XMFLOAT2 uv;//UV座標
 
 	};
@@ -347,35 +348,35 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	Vertex vertices[] =
 	{
 		//前
-		{{ -5.0f,-5.0f,-5.0f},   {0.0f,1.0f}},//左下 インデックス0
-		{{ -5.0f,+5.0f,-5.0f},   {0.0f,0.0f}},//左上 インデックス1
-		{{ +5.0f,-5.0f,-5.0f},   {1.0f,1.0f}},//右下 インデックス2
-		{{ +5.0f,+5.0f,-5.0f},   {1.0f,0.0f}},//右上 インデックス3
+		{{ -5.0f,-5.0f,-5.0f},   {},{0.0f,1.0f}},//左下 インデックス0
+		{{ -5.0f,+5.0f,-5.0f},   {},{0.0f,0.0f}},//左上 インデックス1
+		{{ +5.0f,-5.0f,-5.0f},   {},{1.0f,1.0f}},//右下 インデックス2
+		{{ +5.0f,+5.0f,-5.0f},   {},{1.0f,0.0f}},//右上 インデックス3
 		//後
-		{{ -5.0f,-5.0f,+5.0f},   {0.0f,1.0f}},//左下 インデックス0
-		{{ -5.0f,+5.0f,+5.0f},   {0.0f,0.0f}},//左上 インデックス1
-		{{ +5.0f,-5.0f,+5.0f},   {1.0f,1.0f}},//右下 インデックス2
-		{{ +5.0f,+5.0f,+5.0f},   {1.0f,0.0f}},//右上 インデックス3
+		{{ -5.0f,-5.0f,+5.0f},   {},{0.0f,1.0f}},//左下 インデックス0
+		{{ -5.0f,+5.0f,+5.0f},   {},{0.0f,0.0f}},//左上 インデックス1
+		{{ +5.0f,-5.0f,+5.0f},   {},{1.0f,1.0f}},//右下 インデックス2
+		{{ +5.0f,+5.0f,+5.0f},   {},{1.0f,0.0f}},//右上 インデックス3
 		//左
-		{{ -5.0f,-5.0f,-5.0f},   {0.0f,1.0f}},//左下 インデックス0
-		{{ -5.0f,-5.0f,+5.0f},   {0.0f,0.0f}},//左上 インデックス1
-		{{ -5.0f,+5.0f,-5.0f},   {1.0f,1.0f}},//右下 インデックス2
-		{{ -5.0f,+5.0f,+5.0f},   {1.0f,0.0f}},//右上 インデックス3
+		{{ -5.0f,-5.0f,-5.0f},   {},{0.0f,1.0f}},//左下 インデックス0
+		{{ -5.0f,-5.0f,+5.0f},   {},{0.0f,0.0f}},//左上 インデックス1
+		{{ -5.0f,+5.0f,-5.0f},   {},{1.0f,1.0f}},//右下 インデックス2
+		{{ -5.0f,+5.0f,+5.0f},   {},{1.0f,0.0f}},//右上 インデックス3
 		//右
-		{{ +5.0f,-5.0f,-5.0f},   {0.0f,1.0f}},//左下 インデックス0
-		{{ +5.0f,-5.0f,+5.0f},   {0.0f,0.0f}},//左上 インデックス1
-		{{ +5.0f,+5.0f,-5.0f},   {1.0f,1.0f}},//右下 インデックス2
-		{{ +5.0f,+5.0f,+5.0f},   {1.0f,0.0f}},//右上 インデックス3
+		{{ +5.0f,-5.0f,-5.0f},   {},{0.0f,1.0f}},//左下 インデックス0
+		{{ +5.0f,-5.0f,+5.0f},   {},{0.0f,0.0f}},//左上 インデックス1
+		{{ +5.0f,+5.0f,-5.0f},   {},{1.0f,1.0f}},//右下 インデックス2
+		{{ +5.0f,+5.0f,+5.0f},   {},{1.0f,0.0f}},//右上 インデックス3
 		//下
-		{{ -5.0f,-5.0f,-5.0f},   {0.0f,1.0f}},//左下 インデックス0
-		{{ -5.0f,-5.0f,+5.0f},   {0.0f,0.0f}},//左上 インデックス1
-		{{ +5.0f,-5.0f,-5.0f},   {1.0f,1.0f}},//右下 インデックス2
-		{{ +5.0f,-5.0f,+5.0f},   {1.0f,0.0f}},//右上 インデックス3
+		{{ -5.0f,-5.0f,-5.0f},   {},{0.0f,1.0f}},//左下 インデックス0
+		{{ -5.0f,-5.0f,+5.0f},   {},{0.0f,0.0f}},//左上 インデックス1
+		{{ +5.0f,-5.0f,-5.0f},   {},{1.0f,1.0f}},//右下 インデックス2
+		{{ +5.0f,-5.0f,+5.0f},   {},{1.0f,0.0f}},//右上 インデックス3
 		//上
-		{{ -5.0f,+5.0f,-5.0f},   {0.0f,1.0f}},//左下 インデックス0
-		{{ -5.0f,+5.0f,+5.0f},   {0.0f,0.0f}},//左上 インデックス1
-		{{ +5.0f,+5.0f,-5.0f},   {1.0f,1.0f}},//右下 インデックス2
-		{{ +5.0f,+5.0f,+5.0f},   {1.0f,0.0f}},//右上 インデックス3
+		{{ -5.0f,+5.0f,-5.0f},   {},{0.0f,1.0f}},//左下 インデックス0
+		{{ -5.0f,+5.0f,+5.0f},   {},{0.0f,0.0f}},//左上 インデックス1
+		{{ +5.0f,+5.0f,-5.0f},   {},{1.0f,1.0f}},//右下 インデックス2
+		{{ +5.0f,+5.0f,+5.0f},   {},{1.0f,0.0f}},//右上 インデックス3
 	};
 
 	//三角形のインデックスデータ
@@ -383,21 +384,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	{
 		//前
 		0,1,2,//三角形1
-		1,2,3,//三角形2
+		2,1,3,//三角形2
 		//後
-		4,5,6,//三角形3
+		5,4,6,//三角形3
 		5,6,7,//三角形4
 		//左
 		8,9,10,//三角形5
-		9,10,11,//三角形6
+		10,9,11,//三角形6
 		//右
-		12,13,14,//三角形7
+		13,12,14,//三角形7
 		13,14,15,//三角形8
 		//下
 		16,17,18,//三角形9
-		17,18,19,//三角形10
+		18,17,19,//三角形10
 		//上
-		20,21,22,//三角形11
+		21,20,22,//三角形11
 		21,22,23,//三角形12
 
 	};
@@ -515,6 +516,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	  {
 		"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,D3D12_APPEND_ALIGNED_ELEMENT,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
 	  },
+		//法線ベクトル
+		{
+		"NORMAL",0,DXGI_FORMAT_R32G32B32_FLOAT,0,D3D12_APPEND_ALIGNED_ELEMENT,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
+
+
+		},
 
 		//UV
 	  {
@@ -544,7 +551,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	pipelineDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK; // 標準設定
 
 	// ラスタライザの設定
-	pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // カリングしない
+	pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK; // カリング
 	pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴン内塗りつぶし
 	//pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;//ワイヤーフレーム
 	pipelineDesc.RasterizerState.DepthClipEnable = true; // 深度クリッピングを有効に
@@ -626,8 +633,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	//単位行列を追加
 	constMapTransform->mat = XMMatrixIdentity();
-	constMapTransform->mat.r[0].m128_f32[0]=2.0f/1280;//横幅
-	constMapTransform->mat.r[1].m128_f32[1] = -2.0f/720;//縦幅
+	constMapTransform->mat.r[0].m128_f32[0] = 2.0f / 1280;//横幅
+	constMapTransform->mat.r[1].m128_f32[1] = -2.0f / 720;//縦幅
 	constMapTransform->mat.r[3].m128_f32[0] = -1.0f;//-1平行移動
 	constMapTransform->mat.r[3].m128_f32[1] = +1.0f;//+1平行移動
 
@@ -1079,10 +1086,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		//ワールド変換行列
 		XMMATRIX matWorld;
-		
+
 		XMMATRIX matScale;//スケーリング行列
 		matScale = XMMatrixScaling(scale.x, scale.y, scale.z);
-		
+
 		XMMATRIX matRot;//回転行列
 		matRot = XMMatrixIdentity();
 		matRot *= XMMatrixRotationZ(rotation.z);//Z軸周りに45°回転
@@ -1136,7 +1143,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// 3.画面クリア R G B A
 		FLOAT clearColor[] = { 0.1f,0.25f, 0.5f,0.0f }; // 青っぽい色
 		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f,0,0, nullptr);
+		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 
 
