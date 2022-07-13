@@ -623,8 +623,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	{
 		XMMATRIX mat;
 	};
-	ID3D12Resource* constBuffTransform = nullptr;
-	ConstBufferDataTransform* constMapTransform = nullptr;
+	//1番
+	ID3D12Resource* constBuffTransform0 = nullptr;
+	ConstBufferDataTransform* constMapTransform0 = nullptr;
+	//2番
+	ID3D12Resource* constBuffTransform1 = nullptr;
+	ConstBufferDataTransform* constMapTransform1 = nullptr;
 	{
 		//ヒープ設定
 		D3D12_HEAP_PROPERTIES cbHeapProp{};
@@ -638,39 +642,54 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		cbResourceDesc.MipLevels = 1;
 		cbResourceDesc.SampleDesc.Count = 1;
 		cbResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		//定数バッファの生成
+
+		//定数バッファの生成(0)
 		result = device->CreateCommittedResource(
 			&cbHeapProp,//ヒープ設定
 			D3D12_HEAP_FLAG_NONE,
 			&cbResourceDesc,//リソース設定
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
-			IID_PPV_ARGS(&constBuffTransform));
+			IID_PPV_ARGS(&constBuffTransform0));
 		assert(SUCCEEDED(result));
 
 		//定数バッファのマッピング
-		result = constBuffTransform->Map(0, nullptr, (void**)&constMapTransform);//マッピング
+		result = constBuffTransform0->Map(0, nullptr, (void**)&constMapTransform0);//マッピング
+		assert(SUCCEEDED(result));
+
+		//定数バッファの生成(1)
+		result = device->CreateCommittedResource(
+			&cbHeapProp,//ヒープ設定
+			D3D12_HEAP_FLAG_NONE,
+			&cbResourceDesc,//リソース設定
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&constBuffTransform1));
+		assert(SUCCEEDED(result));
+
+		//定数バッファのマッピング
+		result = constBuffTransform1->Map(0, nullptr, (void**)&constMapTransform1);//マッピング
 		assert(SUCCEEDED(result));
 	}
 
 	//単位行列を追加
-	constMapTransform->mat = XMMatrixIdentity();
-	constMapTransform->mat.r[0].m128_f32[0] = 2.0f / 1280;//横幅
-	constMapTransform->mat.r[1].m128_f32[1] = -2.0f / 720;//縦幅
-	constMapTransform->mat.r[3].m128_f32[0] = -1.0f;//-1平行移動
-	constMapTransform->mat.r[3].m128_f32[1] = +1.0f;//+1平行移動
+	constMapTransform0->mat = XMMatrixIdentity();
+	constMapTransform0->mat.r[0].m128_f32[0] = 2.0f / 1280;//横幅
+	constMapTransform0->mat.r[1].m128_f32[1] = -2.0f / 720;//縦幅
+	constMapTransform0->mat.r[3].m128_f32[0] = -1.0f;//-1平行移動
+	constMapTransform0->mat.r[3].m128_f32[1] = +1.0f;//+1平行移動
 
 
 
 	//並行投影行列の計算
-	constMapTransform->mat = XMMatrixOrthographicOffCenterLH
+	constMapTransform0->mat = XMMatrixOrthographicOffCenterLH
 	(
 		0.0f, 1280.0f,
 		720.0f, 0.0f,
 		0.0f, 1.0f
 	);
 	//透視投影行列の計算
-	constMapTransform->mat = XMMatrixPerspectiveFovLH(
+	constMapTransform0->mat = XMMatrixPerspectiveFovLH(
 		XMConvertToRadians(45.0f),//上下画角45度
 		(float)1280 / 720,//アスペクト比(画面横幅/画面縦幅）
 		0.1f, 1000.0f//前端、奥端
@@ -1129,7 +1148,35 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		matWorld *= matScale;//ワールド行列にスケーリング行列を反映
 		matWorld *= matRot;//ワールド行列に回転行列を反映
 		//定数バッファに転送
-		constMapTransform->mat = matWorld * matView * matProjection;
+		constMapTransform0->mat = matWorld * matView * matProjection;
+
+
+
+
+		//ワールド変換行列(1)
+		XMMATRIX matWorld1;
+
+		XMMATRIX matScale1;//スケーリング行列
+		matScale1 = XMMatrixScaling(1.0f,1.0f,1.0f);
+
+		XMMATRIX matRot1;//回転行列
+		matRot1 = XMMatrixIdentity();
+		//matRot1 *= XMMatrixRotationZ(rotation.z);//Z軸周りに45°回転
+		//matRot1 *= XMMatrixRotationX(rotation.x);//X軸周りに15°回転
+		matRot1*= XMMatrixRotationY(XM_PI/4.0f);//Y軸周りに30°回転
+
+
+		XMMATRIX matTrans1;//平行移動行列
+		matTrans1 = XMMatrixTranslation(-20.0f, 0, 0);
+
+
+
+		matWorld1 = XMMatrixIdentity();//単位行列を代入し変形をリセット
+		matWorld1 *= matTrans1;//ワールド行列に平行移動行列を代入
+		matWorld1 *= matScale1;//ワールド行列にスケーリング行列を反映
+		matWorld1 *= matRot1;//ワールド行列に回転行列を反映
+		//定数バッファに転送
+		constMapTransform1->mat = matWorld1 * matView * matProjection;
 
 
 
@@ -1222,13 +1269,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// 定数バッファビュー(CBV)の設定コマンド
 		commandList->SetGraphicsRootConstantBufferView(0, constBufferMaterial->GetGPUVirtualAddress());
 		// 定数バッファビュー(CBV)の設定コマンド2
-		commandList->SetGraphicsRootConstantBufferView(2, constBuffTransform->GetGPUVirtualAddress());
+		commandList->SetGraphicsRootConstantBufferView(2, constBuffTransform0->GetGPUVirtualAddress());
 
 
 
 
 		// 描画コマンド
 		//commandList->DrawInstanced(6, 1, 0, 0); // 全ての頂点を使って描画
+		commandList->SetGraphicsRootConstantBufferView(2, constBuffTransform0->GetGPUVirtualAddress());//0
+		commandList->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0); // インデックスバッファを使って描画
+
+		commandList->SetGraphicsRootConstantBufferView(2, constBuffTransform1->GetGPUVirtualAddress());//1
 		commandList->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0); // インデックスバッファを使って描画
 
 
