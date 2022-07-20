@@ -456,6 +456,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	{
 		XMFLOAT4 color;
 	};
+
 	//ヒープ設定
 	 D3D12_HEAP_PROPERTIES cbHeapProp{};
 	 cbHeapProp.Type =D3D12_HEAP_TYPE_UPLOAD;//GPUへの転送用
@@ -483,16 +484,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		 IID_PPV_ARGS(&constBufferMaterial));
      assert(SUCCEEDED(result));
 
+
+
+
 	 //定数バッファのマッピング
 	 ConstBufferDataMaterial* constMapMaterial = nullptr;
 	 result = constBufferMaterial->Map(0, nullptr, (void**)&constMapMaterial);
 	 assert(SUCCEEDED(result));
 
-
-
-
 	 //値を書き込むと自動的に転送される
-	 constMapMaterial->color = XMFLOAT4(1,0,0,0.5f);
+	 constMapMaterial->color = XMFLOAT4(0,0,0,1.0f);
+
+
+
+
 
 	 //ルートパラメータの設定
 	 D3D12_ROOT_PARAMETER rootParam = {};
@@ -563,11 +568,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 
 
+//色変え用変数
+	float RED1 = 0.0f;
+	float GREEN2 = 0.0f;
+	float BLUE3 = 0.0f;
+	float ALPHA4 = 1.0f;
 
-
-
-
-
+	
 
 
 
@@ -592,7 +599,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		}
 
 		//DIRECTX毎フレーム処理ここから 
+		
 
+
+		 //定数バッファのマッピング
+		ConstBufferDataMaterial* constMapMaterial = nullptr;
+		result = constBufferMaterial->Map(0, nullptr, (void**)&constMapMaterial);
+		assert(SUCCEEDED(result));
+
+
+
+
+		
 		//キーボード処理の取得開始
 		keyboard->Acquire();
 
@@ -630,6 +648,46 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 
 		// 4.描画コマンドここから
+
+
+		constMapMaterial->color = XMFLOAT4(RED1, GREEN2, BLUE3, ALPHA4);
+		
+
+			
+		if (key[DIK_1]&&key[DIK_UP]&&RED1 <= 256)//REDの値+
+		{
+			RED1 += 0.01f;
+		}
+		if (key[DIK_1]&&key[DIK_DOWN]&&RED1 <= 256)//REDの値-
+		{
+			RED1 -= 0.01f;
+		}
+		if (key[DIK_2] && key[DIK_UP] && GREEN2 <= 256)//GREENの値+
+		{
+			GREEN2 += 0.01f;
+		}
+		if (key[DIK_2] && key[DIK_DOWN] && GREEN2 <= 256)//GREENの値-
+		{
+			GREEN2 -= 0.01f;
+		}
+		if (key[DIK_3] && key[DIK_UP] && BLUE3 <= 256)//BLUEの値+
+		{
+			BLUE3 += 0.01f;
+		}
+		if (key[DIK_3] && key[DIK_DOWN] && BLUE3 <= 256)//BLUEの値-
+		{
+			BLUE3 -= 0.01f;
+		}
+		if (key[DIK_4] && key[DIK_UP] && ALPHA4 <= 256)//ALPHAの値+
+		{
+			ALPHA4 += 0.01f;
+		}
+		if (key[DIK_4] && key[DIK_DOWN] && ALPHA4 <= 256)//ALPHAの値-
+		{
+			ALPHA4 -= 0.01f;
+		}
+		
+		
 
 
 
